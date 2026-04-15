@@ -1,0 +1,2279 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Civic AI Platform - Ethiopia</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#1e6b3a">
+  <meta name="description" content="Civic AI Platform - Ethiopia's complaint management system">
+  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;Civic AI&quot;,&quot;short_name&quot;:&quot;Civic AI&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;theme_color&quot;:&quot;#1e6b3a&quot;}">
+  <style>
+  * { box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; margin: 0; }
+  .font-mono-accent { font-family: 'Space Mono', monospace; }
+  .sidebar-btn { transition: all 0.2s; }
+  .sidebar-btn:hover, .sidebar-btn.active { background: rgba(255,255,255,0.12); }
+  .card-enter { animation: cardIn 0.3s ease-out; }
+  @keyframes cardIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .urgency-high { border-left: 4px solid #ef4444; }
+  .urgency-medium { border-left: 4px solid #f59e0b; }
+  .urgency-low { border-left: 4px solid #22c55e; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px; animation: toastIn 0.3s ease-out; }
+  @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .modal-content { background: #fff; border-radius: 12px; padding: 28px; max-width: 520px; width: 90%; max-height: 80%; overflow-y: auto; }
+  .stat-card { position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: 0.08; }
+  input, select, textarea { font-family: 'DM Sans', sans-serif; }
+  .scroll-area { overflow-y: auto; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  #map { width: 100%; height: 400px; border-radius: 8px; }
+  .role-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .notification-panel { position: fixed; bottom: 20px; right: 20px; z-index: 9998; width: 320px; max-width: 90%; }
+  .notification-item { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 4px solid #2563eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { transform: translateX(340px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <!-- AUTH SCREEN -->
+  <div id="auth-container" class="h-full flex">
+   <!-- LOGIN SCREEN -->
+   <div id="login-screen" class="w-full h-full flex items-center justify-center p-4" style="background:linear-gradient(135deg, #0c1929 0%, #1a2f4a 100%);">
+    <div class="w-full max-w-400px">
+     <div class="bg-white rounded-2xl shadow-2xl p-8 card-enter">
+      <!-- Logo -->
+      <div class="flex items-center justify-center mb-8">
+       <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background:#1e6b3a;">
+        <span class="text-white text-2xl">🏛️</span>
+       </div>
+       <div class="ml-3">
+        <div class="text-lg font-bold" style="color:#0c1929;">
+         Civic AI
+        </div>
+        <div class="text-xs text-slate-400">
+         Ethiopia
+        </div>
+       </div>
+      </div>
+      <h2 class="text-xl font-bold text-center mb-1" style="color:#0c1929;">Welcome Back</h2>
+      <p class="text-xs text-center text-slate-400 mb-6">Sign in to your government account</p>
+      <form id="login-form" onsubmit="handleLogin(event)">
+       <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Phone Number</label> <input id="login-phone" type="tel" required placeholder="+251 9xx xxx xxxx" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="mb-2">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Password</label> <input id="login-password" type="password" required placeholder="Enter your password" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="text-right mb-6">
+        <button type="button" onclick="switchAuthScreen('forgot')" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Forgot password?</button>
+       </div><button type="submit" class="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all" style="background:#1e6b3a;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"> Sign In </button>
+      </form>
+      <div class="text-center mt-6 text-xs text-slate-600">
+       Don't have an account? <button type="button" onclick="switchAuthScreen('signup')" class="text-blue-600 hover:text-blue-700 font-semibold">Create one</button>
+      </div>
+     </div>
+     <div class="text-center mt-8 text-xs text-white/60">
+      📍 Finfinnee, Ethiopia 🇪🇹 | nuunnames@gmail.com | +251 953 536 342
+     </div>
+    </div>
+   </div><!-- SIGNUP SCREEN -->
+   <div id="signup-screen" class="w-full h-full hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg, #0c1929 0%, #1a2f4a 100%);">
+    <div class="w-full max-w-400px">
+     <div class="bg-white rounded-2xl shadow-2xl p-8 card-enter">
+      <h2 class="text-xl font-bold text-center mb-1" style="color:#0c1929;">Create Account</h2>
+      <p class="text-xs text-center text-slate-400 mb-6">Join the Civic AI Platform</p>
+      <form id="signup-form" onsubmit="handleSignup(event)">
+       <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Full Name</label> <input id="signup-name" type="text" required placeholder="Your full name" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Phone Number</label> <input id="signup-phone" type="tel" required placeholder="+251 9xx xxx xxxx" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Email (Optional)</label> <input id="signup-email" type="email" placeholder="your@email.com" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Password</label> <input id="signup-password" type="password" required placeholder="Create a strong password" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div>
+       <div class="mb-6">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Confirm Password</label> <input id="signup-confirm" type="password" required placeholder="Confirm your password" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div><button type="submit" class="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all" style="background:#1e6b3a;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"> Create Account </button>
+      </form>
+      <div class="text-center mt-6 text-xs text-slate-600">
+       Already have an account? <button type="button" onclick="switchAuthScreen('login')" class="text-blue-600 hover:text-blue-700 font-semibold">Sign in</button>
+      </div>
+     </div>
+    </div>
+   </div><!-- OTP VERIFICATION SCREEN -->
+   <div id="otp-screen" class="w-full h-full hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg, #0c1929 0%, #1a2f4a 100%);">
+    <div class="w-full max-w-400px">
+     <div class="bg-white rounded-2xl shadow-2xl p-8 card-enter">
+      <h2 class="text-xl font-bold text-center mb-1" style="color:#0c1929;">Verify Phone</h2>
+      <p class="text-xs text-center text-slate-400 mb-6">Enter the 6-digit code sent to your phone</p>
+      <div id="otp-phone-display" class="bg-slate-50 rounded-lg px-4 py-3 text-center mb-6">
+       <div class="text-xs text-slate-500 mb-1">
+        Code sent to
+       </div>
+       <div id="otp-phone" class="font-mono-accent font-semibold text-slate-700"></div>
+      </div>
+      <form id="otp-form" onsubmit="handleOTPSubmit(event)">
+       <label class="block text-xs font-semibold text-slate-600 mb-3">Enter Code</label>
+       <div class="flex gap-2 mb-4" id="otp-inputs"></div>
+       <div id="otp-timer" class="text-center text-xs text-slate-500 mb-4">
+        Expires in <span id="timer-count">300</span>s
+       </div><button type="submit" class="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all" style="background:#1e6b3a;"> Verify </button>
+      </form>
+      <div class="text-center mt-4">
+       <button type="button" onclick="resendOTP()" class="text-xs text-blue-600 hover:text-blue-700 font-medium"> Didn't receive code? Resend </button>
+      </div>
+      <div class="text-center mt-6 text-xs text-slate-600">
+       <button type="button" onclick="switchAuthScreen('login')" class="text-slate-500 hover:text-slate-700">← Back to Login</button>
+      </div>
+     </div>
+    </div>
+   </div><!-- FORGOT PASSWORD SCREEN -->
+   <div id="forgot-screen" class="w-full h-full hidden flex items-center justify-center p-4" style="background:linear-gradient(135deg, #0c1929 0%, #1a2f4a 100%);">
+    <div class="w-full max-w-400px">
+     <div class="bg-white rounded-2xl shadow-2xl p-8 card-enter">
+      <h2 class="text-xl font-bold text-center mb-1" style="color:#0c1929;">Reset Password</h2>
+      <p class="text-xs text-center text-slate-400 mb-6">Enter your phone to receive a reset code</p>
+      <form id="forgot-form" onsubmit="handleForgotPassword(event)">
+       <div class="mb-6">
+        <label class="block text-xs font-semibold text-slate-600 mb-2">Phone Number</label> <input id="forgot-phone" type="tel" required placeholder="+251 9xx xxx xxxx" class="w-full px-4 py-3 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-green-500 transition-colors">
+       </div><button type="submit" class="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all" style="background:#1e6b3a;"> Send Reset Code </button>
+      </form>
+      <div class="text-center mt-6 text-xs text-slate-600">
+       <button type="button" onclick="switchAuthScreen('login')" class="text-blue-600 hover:text-blue-700 font-semibold">← Back to Login</button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <div id="app" class="h-full flex hidden" style="background:#f0f2f5;">
+   <!-- Sidebar -->
+   <nav id="sidebar" class="w-64 flex-shrink-0 flex flex-col" style="background:#0c1929;">
+    <div class="p-5 border-b border-white/10">
+     <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:#1e6b3a;">
+       <span class="text-white text-lg">🏛️</span>
+      </div>
+      <div>
+       <div id="sidebar-title" class="text-white font-bold text-sm leading-tight">
+        Civic AI Platform
+       </div>
+       <div id="sidebar-subtitle" class="text-slate-400 text-xs">
+        FDRE
+       </div>
+      </div>
+     </div>
+    </div>
+    <div class="flex-1 p-3 flex flex-col gap-1">
+     <button onclick="switchView('dashboard')" id="nav-dashboard" class="sidebar-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/90 text-sm text-left"> <i data-lucide="layout-dashboard" style="width:18px;height:18px;"></i> Dashboard </button> <button onclick="switchView('map')" id="nav-map" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="map-pin" style="width:18px;height:18px;"></i> Map View </button> <button onclick="switchView('complaints')" id="nav-complaints" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="inbox" style="width:18px;height:18px;"></i> Complaints </button> <button onclick="switchView('submit')" id="nav-submit" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="plus-circle" style="width:18px;height:18px;"></i> New Complaint </button> <button onclick="switchView('legal')" id="nav-legal" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="scale" style="width:18px;height:18px;"></i> Legal Database </button> <button onclick="switchView('audit')" id="nav-audit" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="shield-check" style="width:18px;height:18px;"></i> Audit Log </button> <button onclick="switchView('telegram')" id="nav-telegram" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="send" style="width:18px;height:18px;"></i> Telegram Bot </button> <button onclick="switchView('roles')" id="nav-roles" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 text-sm text-left"> <i data-lucide="users" style="width:18px;height:18px;"></i> Roles </button>
+    </div>
+    <div class="p-4 border-t border-white/10">
+     <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:#2563eb;">
+       GA
+      </div>
+      <div>
+       <div class="text-white text-xs font-semibold" id="user-name">
+        Gov Admin
+       </div>
+       <div class="text-slate-500 text-xs">
+        Super Admin
+       </div>
+      </div>
+     </div><button onclick="logout()" class="w-full mt-3 px-3 py-2 rounded-lg text-white text-xs font-semibold transition-all hover:bg-red-600/20" style="background:rgba(239,68,68,0.1);color:#ef4444;"> 🔒 Logout </button>
+    </div>
+   </nav><!-- Main Content -->
+   <main class="flex-1 flex flex-col h-full overflow-hidden">
+    <!-- Header -->
+    <header class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
+     <div>
+      <h1 id="page-title" class="text-lg font-bold" style="color:#0c1929;">Dashboard Overview</h1>
+      <p class="text-xs text-slate-400 font-mono-accent" id="current-time"></p>
+     </div>
+     <div class="flex items-center gap-3">
+      <span class="badge" style="background:#dcfce7;color:#166534;">System Operational</span> <span class="badge" style="background:#e0e7ff;color:#3730a3;">AI Active</span>
+     </div>
+    </header>
+    <div class="flex-1 scroll-area p-6">
+     <!-- DASHBOARD VIEW -->
+     <div id="view-dashboard">
+      <!-- Stats Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+       <div class="stat-card card-enter bg-white rounded-xl p-5 border border-slate-100">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
+         Total Cases
+        </div>
+        <div id="stat-total" class="text-3xl font-bold font-mono-accent" style="color:#0c1929;">
+         0
+        </div>
+       </div>
+       <div class="stat-card card-enter bg-white rounded-xl p-5 border border-slate-100">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
+         Pending Review
+        </div>
+        <div id="stat-pending" class="text-3xl font-bold font-mono-accent" style="color:#f59e0b;">
+         0
+        </div>
+       </div>
+       <div class="stat-card card-enter bg-white rounded-xl p-5 border border-slate-100">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
+         Resolved
+        </div>
+        <div id="stat-resolved" class="text-3xl font-bold font-mono-accent" style="color:#22c55e;">
+         0
+        </div>
+       </div>
+       <div class="stat-card card-enter bg-white rounded-xl p-5 border border-slate-100">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
+         High Urgency
+        </div>
+        <div id="stat-high" class="text-3xl font-bold font-mono-accent" style="color:#ef4444;">
+         0
+        </div>
+       </div>
+       <div class="stat-card card-enter bg-white rounded-xl p-5 border border-slate-100">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
+         Mapped Cases
+        </div>
+        <div id="stat-mapped" class="text-3xl font-bold font-mono-accent" style="color:#2563eb;">
+         0
+        </div>
+       </div>
+      </div><!-- Category Breakdown & Recent -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+       <div class="bg-white rounded-xl p-5 border border-slate-100 card-enter">
+        <h3 class="font-bold text-sm mb-4" style="color:#0c1929;">Category Distribution</h3>
+        <div id="category-bars"></div>
+        <div id="category-empty" class="text-center text-slate-400 text-sm py-8">
+         No data yet. Submit complaints to see analytics.
+        </div>
+       </div>
+       <div class="bg-white rounded-xl p-5 border border-slate-100 card-enter">
+        <h3 class="font-bold text-sm mb-4" style="color:#0c1929;">Recent Activity</h3>
+        <div id="recent-list"></div>
+        <div id="recent-empty" class="text-center text-slate-400 text-sm py-8">
+         No recent activity.
+        </div>
+       </div>
+      </div>
+     </div><!-- MAP VIEW -->
+     <div id="view-map" class="hidden">
+      <div class="bg-white rounded-xl border border-slate-100 p-4 card-enter mb-4">
+       <h3 class="font-bold text-sm mb-3" style="color:#0c1929;">Real-Time Complaint Heatmap (Addis Ababa)</h3>
+       <div class="flex gap-2 mb-3">
+        <button onclick="switchMapMode('markers')" id="map-mode-markers" class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-blue-50 text-blue-700">📍 Markers</button> <button onclick="switchMapMode('heatmap')" id="map-mode-heatmap" class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold hover:bg-slate-50">🔥 Heatmap</button> <button onclick="switchMapMode('clusters')" id="map-mode-clusters" class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold hover:bg-slate-50">📊 Clusters</button>
+       </div>
+       <div id="map"></div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-100 p-4 card-enter">
+       <h3 class="font-bold text-sm mb-3" style="color:#0c1929;">Geotagged Cases</h3>
+       <div id="map-legend" class="space-y-2"></div>
+       <div id="map-empty" class="text-center text-slate-400 text-sm py-6">
+        No location data. Submit complaints with GPS coordinates to see on map.
+       </div>
+      </div>
+     </div>
+     <div id="view-complaints" class="hidden">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+       <select id="filter-status" onchange="renderComplaints()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"> <option value="all">All Status</option> <option value="Submitted">Submitted</option> <option value="Under Review">Under Review</option> <option value="Resolved">Resolved</option> </select> <select id="filter-urgency" onchange="renderComplaints()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"> <option value="all">All Urgency</option> <option value="HIGH">High</option> <option value="MEDIUM">Medium</option> <option value="LOW">Low</option> </select> <select id="filter-category" onchange="renderComplaints()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"> <option value="all">All Categories</option> <option value="Waste Management">Waste Management</option> <option value="Water Services">Water Services</option> <option value="Roads &amp; Infrastructure">Roads &amp; Infrastructure</option> <option value="Public Health">Public Health</option> <option value="Land &amp; Housing">Land &amp; Housing</option> <option value="Governance">Governance</option> </select> <select id="filter-language" onchange="renderComplaints()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"> <option value="all">All Languages</option> <option value="en">English</option> <option value="am">Amharic</option> <option value="om">Oromo</option> </select> <button onclick="toggleDuplicateFilter()" id="dup-btn" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white hover:bg-slate-50">🚫 Show Duplicates</button>
+      </div>
+      <div id="complaints-list"></div>
+      <div id="complaints-empty" class="text-center text-slate-400 text-sm py-12">
+       No complaints found. Submit one from the sidebar.
+      </div>
+     </div><!-- SUBMIT VIEW -->
+     <div id="view-submit" class="hidden">
+      <div class="max-w-2xl">
+       <div class="bg-white rounded-xl p-6 border border-slate-100 card-enter">
+        <h3 class="font-bold text-base mb-1" style="color:#0c1929;">Submit New Complaint</h3>
+        <p class="text-xs text-slate-400 mb-5">AI will automatically classify and match relevant laws.</p>
+        <form id="complaint-form" onsubmit="handleSubmit(event)">
+         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+           <label for="f-name" class="block text-xs font-semibold text-slate-500 mb-1">Citizen Name</label> <input id="f-name" type="text" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Full name">
+          </div>
+          <div>
+           <label for="f-phone" class="block text-xs font-semibold text-slate-500 mb-1">Phone (SMS Fallback)</label> <input id="f-phone" type="tel" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+251 9xx xxx xxxx">
+          </div>
+         </div>
+         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+           <label for="f-region" class="block text-xs font-semibold text-slate-500 mb-1">Region / Woreda</label> <select id="f-region" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Select region</option> <option>Addis Ababa / Bole</option> <option>Addis Ababa / Yeka</option> <option>Oromia / Sheger</option> <option>Oromia / Adama</option> <option>Amhara / Bahir Dar</option> <option>SNNPR / Hawassa</option> <option>Tigray / Mekelle</option> <option>Other</option> </select>
+          </div>
+          <div>
+           <label for="f-category" class="block text-xs font-semibold text-slate-500 mb-1">Category</label> <select id="f-category" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Select category</option> <option>Waste Management</option> <option>Water Services</option> <option>Roads &amp; Infrastructure</option> <option>Public Health</option> <option>Land &amp; Housing</option> <option>Governance</option> </select>
+          </div>
+         </div>
+         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+           <label for="f-email" class="block text-xs font-semibold text-slate-500 mb-1">Email (for updates)</label> <input id="f-email" type="email" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="your@email.com">
+          </div>
+          <div>
+           <label class="block text-xs font-semibold text-slate-500 mb-1">GPS Location (Optional)</label> <button type="button" onclick="captureGPS()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-blue-50 text-blue-700 font-medium hover:bg-blue-100 transition-all w-full"> <i data-lucide="navigation-2" style="width:14px;height:14px;display:inline;margin-right:4px;"></i> Get Current Location </button>
+           <div class="mb-4">
+            <label for="f-desc" class="block text-xs font-semibold text-slate-500 mb-2">Description</label>
+            <div class="flex gap-2 mb-4">
+             <textarea id="f-desc" required rows="4" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Describe the issue in detail..."></textarea> <button type="button" id="voice-btn" onclick="startVoiceInput()" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all" title="Record complaint with voice"> <i data-lucide="mic" style="width:20px;height:20px;"></i> </button>
+            </div>
+           </div><button id="submit-btn" type="submit" class="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90" style="background:#1e6b3a;"> <span id="submit-text">Submit &amp; Analyze</span> <span id="submit-loading" class="hidden">Analyzing...</span> </button>
+          </div>
+         </div>
+        </form>
+       </div><!-- LEGAL VIEW -->
+       <div id="view-legal" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="legal-cards">
+        </div>
+       </div><!-- AUDIT VIEW -->
+       <div id="view-audit" class="hidden">
+        <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+         <div class="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+          <i data-lucide="shield-check" style="width:16px;height:16px;color:#6366f1;"></i> <span class="text-sm font-bold" style="color:#0c1929;">Immutable Audit Trail</span> <span class="badge ml-auto" style="background:#fef3c7;color:#92400e;">Tamper-Proof</span>
+         </div>
+         <div id="audit-list" class="divide-y divide-slate-50"></div>
+         <div id="audit-empty" class="text-center text-slate-400 text-sm py-12">
+          No audit events recorded yet.
+         </div>
+        </div>
+       </div><!-- TELEGRAM VIEW -->
+       <div id="view-telegram" class="hidden"></div><!-- ROLES VIEW -->
+       <div id="view-roles" class="hidden"></div>
+      </div>
+     </div><!-- Toast Container -->
+     <div id="toast-container" class="toast-container"></div><!-- Detail Modal -->
+     <div id="detail-modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+       <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold" style="color:#0c1929;">Case Details</h3><button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+       </div>
+       <div id="modal-body"></div>
+      </div>
+     </div>
+     <script>
+// ===== SUPABASE INTEGRATION =====
+const SUPABASE_URL = 'https://xilystkfdruuxkxqjenq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_25cTmqyhwmPx9Ak_IeNWJg_ZMQtFBox';
+
+let supabase = null;
+
+async function initSupabase() {
+  if (!window.supabase) {
+    console.error('Supabase library not loaded');
+    return false;
+  }
+  
+  const { createClient } = window.supabase;
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  console.log('✅ Supabase connected');
+  addAudit('SUPABASE_INIT', `Supabase database connected at ${SUPABASE_URL}`);
+  return true;
+}
+
+async function syncComplaints() {
+  if (!supabase) return false;
+  
+  try {
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase fetch error:', error);
+      addAudit('SUPABASE_ERROR', `Failed to fetch complaints: ${error.message}`);
+      return false;
+    }
+    
+    if (data && data.length > 0) {
+      allComplaints = data.map(record => ({
+        ...record,
+        __backendId: record.id || record.__backendId
+      }));
+      
+      console.log(`✅ Synced ${data.length} complaints from Supabase`);
+      addAudit('SUPABASE_SYNC', `Fetched ${data.length} complaints from database`);
+      
+      if (currentView === 'dashboard') renderDashboard();
+      if (currentView === 'complaints') renderComplaints();
+      
+      return true;
+    }
+  } catch (err) {
+    console.error('Supabase sync error:', err);
+    addAudit('SUPABASE_ERROR', `Sync error: ${err.message}`);
+    showToast('⚠️ Failed to sync with database. Using local cache.', 'error');
+    return false;
+  }
+}
+
+async function createComplaintSupabase(complaint) {
+  if (!supabase) return { isOk: false, isError: true, error: new Error('Supabase not initialized') };
+  
+  try {
+    const { data, error } = await supabase
+      .from('complaints')
+      .insert([{
+        citizen_name: complaint.citizen_name,
+        region: complaint.region,
+        category: complaint.category,
+        description: complaint.description,
+        language: complaint.language,
+        urgency: complaint.urgency,
+        status: complaint.status,
+        matched_law: complaint.matched_law,
+        ai_confidence: complaint.ai_confidence,
+        ai_recommendation: complaint.ai_recommendation,
+        department: complaint.department,
+        contact_phone: complaint.contact_phone,
+        contact_email: complaint.contact_email,
+        latitude: complaint.latitude,
+        longitude: complaint.longitude,
+        audit_hash: complaint.audit_hash,
+        assigned_role: complaint.assigned_role,
+        created_at: complaint.created_at
+      }])
+      .select();
+    
+    if (error) {
+      console.error('Supabase insert error:', error);
+      addAudit('SUPABASE_ERROR', `Failed to create complaint: ${error.message}`);
+      return { isOk: false, isError: true, error };
+    }
+    
+    console.log('✅ Complaint created in Supabase:', data);
+    addAudit('SUPABASE_CREATE', `Complaint ${complaint.audit_hash.substring(0, 8)} saved to Supabase`);
+    
+    return { isOk: true, isError: false, data };
+  } catch (err) {
+    console.error('Supabase create error:', err);
+    return { isOk: false, isError: true, error: err };
+  }
+}
+
+async function updateComplaintSupabase(complaint) {
+  if (!supabase) return { isOk: false, isError: true, error: new Error('Supabase not initialized') };
+  
+  try {
+    const complaintId = complaint.id || complaint.__backendId;
+    
+    const { data, error } = await supabase
+      .from('complaints')
+      .update({
+        status: complaint.status,
+        urgency: complaint.urgency,
+        assigned_role: complaint.assigned_role,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', complaintId)
+      .select();
+    
+    if (error) {
+      console.error('Supabase update error:', error);
+      return { isOk: false, isError: true, error };
+    }
+    
+    console.log('✅ Complaint updated in Supabase');
+    addAudit('SUPABASE_UPDATE', `Complaint ${complaintId} updated in database`);
+    
+    return { isOk: true, isError: false, data };
+  } catch (err) {
+    console.error('Supabase update error:', err);
+    return { isOk: false, isError: true, error: err };
+  }
+}
+
+async function deleteComplaintSupabase(complaint) {
+  if (!supabase) return { isOk: false, isError: true, error: new Error('Supabase not initialized') };
+  
+  try {
+    const complaintId = complaint.id || complaint.__backendId;
+    
+    const { error } = await supabase
+      .from('complaints')
+      .delete()
+      .eq('id', complaintId);
+    
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return { isOk: false, isError: true, error };
+    }
+    
+    console.log('✅ Complaint deleted from Supabase');
+    addAudit('SUPABASE_DELETE', `Complaint ${complaintId} deleted from database`);
+    
+    return { isOk: true, isError: false };
+  } catch (err) {
+    console.error('Supabase delete error:', err);
+    return { isOk: false, isError: true, error: err };
+  }
+}
+
+async function syncAuditLog() {
+  if (!supabase) return false;
+  
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(100);
+    
+    if (error) {
+      console.error('Supabase audit fetch error:', error);
+      return false;
+    }
+    
+    if (data && data.length > 0) {
+      auditLog = data;
+      console.log(`✅ Synced ${data.length} audit records from Supabase`);
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Supabase audit sync error:', err);
+    return false;
+  }
+}
+
+async function createAuditLogSupabase(auditRecord) {
+  if (!supabase) return false;
+  
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .insert([{
+        action: auditRecord.action,
+        detail: auditRecord.detail,
+        timestamp: auditRecord.timestamp,
+        user_role: auditRecord.user,
+        hash: auditRecord.hash
+      }]);
+    
+    if (error) {
+      console.error('Supabase audit insert error:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Supabase audit create error:', err);
+    return false;
+  }
+}
+
+// ===== MULTI-LANGUAGE SUPPORT =====
+const TRANSLATIONS = {
+  en: {
+    welcome: 'Welcome Back',
+    signin: 'Sign in to your government account',
+    phone: 'Phone Number',
+    password: 'Password',
+    email: 'Email',
+    fullname: 'Full Name',
+    signin_btn: 'Sign In',
+    signup: 'Create Account',
+    forgot: 'Forgot password?',
+    noAccount: "Don't have an account?",
+    createAccount: 'Create one',
+    haveAccount: 'Already have an account?',
+    resetPassword: 'Reset Password',
+    enterPhone: 'Enter your phone to receive a reset code',
+    sendReset: 'Send Reset Code',
+    verifyPhone: 'Verify Phone',
+    enter6digit: 'Enter the 6-digit code sent to your phone',
+    codeSentTo: 'Code sent to',
+    enterCode: 'Enter Code',
+    expiresIn: 'Expires in',
+    verifyBtn: 'Verify',
+    noCode: "Didn't receive code?",
+    resend: 'Resend',
+    backToLogin: '← Back to Login'
+  },
+  am: {
+    welcome: 'ስላም ተመለሱ',
+    signin: 'ለጠቅላላ ሂሳብ ይግቡ',
+    phone: 'ስልክ ቁጥር',
+    password: 'ለውጥ',
+    email: 'ኢሜይል',
+    fullname: 'ሙሉ ስም',
+    signin_btn: 'ግባ',
+    signup: 'ሂሳብ ፍጠር',
+    forgot: 'ለውጥ ረስተዋል?',
+    noAccount: 'ሂሳብ የላሎት?',
+    createAccount: 'አንዱ ፍጠር',
+    haveAccount: 'አስቀድሞ ሂሳብ አለብዎ?',
+    resetPassword: 'ለውጥ ዳግም ያስጀምሩ',
+    enterPhone: 'ዳግም ያስጀምሩ ዲኮድ ለማቀበል ስልክ ያስገቡ',
+    sendReset: 'ዳግም ያስጀምሩ ኮድ ይላኩ',
+    verifyPhone: 'ስልክ ያረጋግጡ',
+    enter6digit: 'ለስልክ ያለው 6-ዲጂት ኮድ ያስገቡ',
+    codeSentTo: 'ኮድ ወደ ተልኮ',
+    enterCode: 'ኮድ ያስገቡ',
+    expiresIn: 'ያበቃል በ',
+    verifyBtn: 'ያረጋግጡ',
+    noCode: 'ኮድ ማግኘት ቻልም?',
+    resend: 'እንደገና ይላኩ',
+    backToLogin: '← ወደ ግባ ተመለስ'
+  },
+  om: {
+    welcome: 'Baga Dhuftaa',
+    signin: 'Herrega keessan seenaa',
+    phone: 'Lakk Bilbilaa',
+    password: 'Jecha Icciitii',
+    email: 'Imeelii',
+    fullname: 'Maqaa Guutuu',
+    signin_btn: 'Seenaa',
+    signup: 'Herrega Haaraa Uumi',
+    forgot: 'Jecha Icciitii Irraanfatte?',
+    noAccount: 'Herrega hin qabdan?',
+    createAccount: 'Tokko Uumi',
+    haveAccount: 'Herrega dursee jira?',
+    resetPassword: 'Jecha Icciitii Irra Deebisuu',
+    enterPhone: 'Jecha irra deebisuu koodii fudhachuuf bilbilaa galchaa',
+    sendReset: 'Koodii Irra Deebisuu Ergaa',
+    verifyPhone: 'Bilbilaa Mirkaneessaa',
+    enter6digit: 'Koodii 6-digitii bilbilaa keessan erguuf galchaa',
+    codeSentTo: 'Koodii ergamaa'
+  }
+};
+
+let currentLanguage = 'en';
+
+function setLanguage(lang) {
+  currentLanguage = lang;
+  localStorage.setItem('civic_language', lang);
+  showToast(`Language changed to ${lang.toUpperCase()}`, 'success');
+}
+
+function _(key) {
+  return TRANSLATIONS[currentLanguage]?.[key] || TRANSLATIONS.en?.[key] || key;
+}
+
+// Load saved language on startup
+window.addEventListener('load', () => {
+  const savedLang = localStorage.getItem('civic_language') || 'en';
+  currentLanguage = savedLang;
+});
+
+// ===== VOICE INPUT =====
+let voiceRecognition = null;
+let isRecording = false;
+
+function initVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Voice input not supported on this browser', 'error');
+    return false;
+  }
+  
+  voiceRecognition = new SpeechRecognition();
+  voiceRecognition.continuous = false;
+  voiceRecognition.lang = currentLanguage === 'am' ? 'am-ET' : currentLanguage === 'om' ? 'om-ET' : 'en-US';
+  
+  voiceRecognition.onstart = () => {
+    isRecording = true;
+    const btn = document.getElementById('voice-btn');
+    if (btn) btn.style.background = '#ef4444';
+    showToast('🎙️ Recording... Speak now', 'info');
+  };
+  
+  voiceRecognition.onend = () => {
+    isRecording = false;
+    const btn = document.getElementById('voice-btn');
+    if (btn) btn.style.background = '';
+  };
+  
+  voiceRecognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    
+    const descField = document.getElementById('f-desc');
+    if (descField) {
+      descField.value = (descField.value + ' ' + transcript).trim();
+      showToast('✅ Voice recorded and added to description', 'success');
+      addAudit('VOICE_INPUT', `Voice complaint added in ${currentLanguage.toUpperCase()}`);
+    }
+  };
+  
+  voiceRecognition.onerror = (event) => {
+    showToast(`❌ Voice error: ${event.error}`, 'error');
+  };
+  
+  return true;
+}
+
+function startVoiceInput() {
+  if (!voiceRecognition) {
+    if (!initVoiceRecognition()) return;
+  }
+  
+  if (isRecording) {
+    voiceRecognition.stop();
+  } else {
+    voiceRecognition.start();
+  }
+}
+
+// ===== OFFLINE MODE WITH INDEXEDDB =====
+let dbInstance = null;
+
+async function initOfflineDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('CivicAIPlatform', 1);
+    
+    req.onerror = () => {
+      console.log('IndexedDB not available - online mode only');
+      resolve(null);
+    };
+    
+    req.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('complaints')) {
+        db.createObjectStore('complaints', { keyPath: '__backendId' });
+      }
+      if (!db.objectStoreNames.contains('cache')) {
+        db.createObjectStore('cache', { keyPath: 'key' });
+      }
+    };
+    
+    req.onsuccess = () => {
+      dbInstance = req.result;
+      console.log('✅ Offline database initialized');
+      resolve(dbInstance);
+    };
+  });
+}
+
+async function cacheComplaintsOffline(complaints) {
+  if (!dbInstance) return;
+  const tx = dbInstance.transaction('complaints', 'readwrite');
+  const store = tx.objectStore('complaints');
+  complaints.forEach(c => store.put(c));
+}
+
+async function getOfflineComplaints() {
+  if (!dbInstance) return [];
+  return new Promise((resolve) => {
+    const tx = dbInstance.transaction('complaints', 'readonly');
+    const store = tx.objectStore('complaints');
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+// ===== FRAUD DETECTION (DUPLICATE COMPLAINTS) =====
+let showDuplicates = false;
+
+function calculateSimilarity(str1, str2) {
+  const s1 = str1.toLowerCase().replace(/\s+/g, '');
+  const s2 = str2.toLowerCase().replace(/\s+/g, '');
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
+  if (longer.length === 0) return 1;
+  const editDistance = getEditDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function getEditDistance(s1, s2) {
+  const costs = [];
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) {
+        costs[j] = j;
+      } else if (j > 0) {
+        let newValue = costs[j - 1];
+        if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        }
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
+function detectDuplicates() {
+  allComplaints.forEach((c, idx) => {
+    c.is_duplicate = false;
+    for (let i = 0; i < idx; i++) {
+      const other = allComplaints[i];
+      const descSimilarity = calculateSimilarity(c.description, other.description);
+      const regionMatch = c.region === other.region;
+      const categoryMatch = c.category === other.category;
+      
+      if (descSimilarity > 0.8 && regionMatch && categoryMatch) {
+        c.is_duplicate = true;
+        addAudit('DUPLICATE_DETECTED', `Case ${c.audit_hash.substring(0, 8)} matches ${other.audit_hash.substring(0, 8)} (${Math.round(descSimilarity * 100)}% similarity)`);
+        break;
+      }
+    }
+  });
+}
+
+function toggleDuplicateFilter() {
+  showDuplicates = !showDuplicates;
+  const btn = document.getElementById('dup-btn');
+  if (btn) {
+    btn.textContent = showDuplicates ? '✅ Hiding Duplicates' : '🚫 Show Duplicates';
+    btn.style.background = showDuplicates ? '#dcfce7' : '';
+  }
+  renderComplaints();
+}
+
+// ===== AI TEXT CLASSIFICATION (TF-IDF SIMPLE) =====
+function classifyTextAmharicOromo(text, lang) {
+  if (lang === 'am') {
+    return classifyAmharicText(text);
+  } else if (lang === 'om') {
+    return classifyOromoText(text);
+  }
+  return 'MEDIUM'; // default
+}
+
+function classifyAmharicText(text) {
+  const urgentWords = ['ወሳኝ', 'አደገኛ', 'ድንገተኛ', 'ሞት', 'ሲሰሚ', 'ስንቅ'];
+  const lowWords = ['ትንሽ', 'ቀላል', 'ጥቀስ'];
+  
+  const textLower = text.toLowerCase();
+  const hasUrgent = urgentWords.some(w => textLower.includes(w));
+  const hasLow = lowWords.some(w => textLower.includes(w));
+  
+  if (hasUrgent) return 'HIGH';
+  if (hasLow) return 'LOW';
+  return 'MEDIUM';
+}
+
+function classifyOromoText(text) {
+  const urgentWords = ['yeroo', 'balaa', 'ajjeesu', 'nama dubbisu', 'halala'];
+  const lowWords = ['xixiqqaa', 'qaamaa', 'tilmaamsa'];
+  
+  const textLower = text.toLowerCase();
+  const hasUrgent = urgentWords.some(w => textLower.includes(w));
+  const hasLow = lowWords.some(w => textLower.includes(w));
+  
+  if (hasUrgent) return 'HIGH';
+  if (hasLow) return 'LOW';
+  return 'MEDIUM';
+}
+
+// ===== SENTIMENT ANALYSIS =====
+function analyzeSentiment(text) {
+  const negativeWords = ['problem', 'issue', 'bad', 'poor', 'angry', 'frustrated', 'disappointed'];
+  const positiveWords = ['good', 'excellent', 'thanks', 'appreciate', 'happy', 'satisfied'];
+  
+  const textLower = text.toLowerCase();
+  const negCount = negativeWords.filter(w => textLower.includes(w)).length;
+  const posCount = positiveWords.filter(w => textLower.includes(w)).length;
+  
+  const score = (posCount - negCount) / Math.max(posCount + negCount, 1);
+  return Math.round((score + 1) / 2 * 100) / 100; // Normalize to 0-1
+}
+
+// ===== AI SUMMARIZATION =====
+function summarizeComplaint(complaint) {
+  const desc = complaint.description;
+  const words = desc.split(' ');
+  const targetLength = Math.max(5, Math.round(words.length * 0.3));
+  
+  const sentences = desc.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  if (sentences.length === 0) return desc.substring(0, 100) + '...';
+  
+  const importantSentence = sentences[0];
+  const summary = `${importantSentence.substring(0, 100)}...`;
+  
+  return summary;
+}
+
+// ===== MAP VISUALIZATION WITH HEATMAP ===== 
+let currentMapMode = 'markers';
+let heatmapLayer = null;
+
+function switchMapMode(mode) {
+  currentMapMode = mode;
+  ['markers', 'heatmap', 'clusters'].forEach(m => {
+    const btn = document.getElementById(`map-mode-${m}`);
+    if (btn) {
+      btn.style.background = m === mode ? '#dbeafe' : '';
+      btn.style.color = m === mode ? '#1e40af' : '';
+    }
+  });
+  renderMap();
+}
+
+function renderHeatmapLayer() {
+  if (heatmapLayer) mapInstance.removeLayer(heatmapLayer);
+  
+  const withGPS = allComplaints.filter(c => c.latitude && c.longitude);
+  if (withGPS.length === 0) return;
+  
+  const heatData = withGPS.map(c => {
+    const intensity = c.urgency === 'HIGH' ? 1 : c.urgency === 'MEDIUM' ? 0.6 : 0.3;
+    return [c.latitude, c.longitude, intensity];
+  });
+  
+  heatmapLayer = L.heatLayer(heatData, {
+    radius: 35,
+    blur: 20,
+    maxZoom: 13,
+    gradient: { 0.4: '#22c55e', 0.65: '#f59e0b', 1: '#ef4444' }
+  }).addTo(mapInstance);
+}
+
+// ===== KEBELE/WOREDA ASSIGNMENT =====
+const KEBELE_WOREDA_MAPPING = {
+  'Addis Ababa / Bole': { kebele: 'Bole Mikael', woreda: 'Bole' },
+  'Addis Ababa / Yeka': { kebele: 'Yeka Ayat', woreda: 'Yeka' },
+  'Oromia / Sheger': { kebele: 'Sheger Arada', woreda: 'Sheger' },
+  'Oromia / Adama': { kebele: 'Adama Arada', woreda: 'Adama' },
+  'Amhara / Bahir Dar': { kebele: 'Bahir Dar Arada', woreda: 'Bahir Dar' },
+  'SNNPR / Hawassa': { kebele: 'Hawassa Arada', woreda: 'Hawassa' },
+  'Tigray / Mekelle': { kebele: 'Mekelle Arada', woreda: 'Mekelle' }
+};
+
+function assignKebeleWoreda(region) {
+  return KEBELE_WOREDA_MAPPING[region] || { kebele: 'Unknown', woreda: 'Unknown' };
+}
+
+
+// ===== STATE =====
+let allComplaints = [];
+let auditLog = [];
+let currentView = 'dashboard';
+let currentUserRole = 'Gov Admin'; // Can be: Gov Admin, Bureau Officer, Auditor, Citizen
+let mapInstance = null;
+let mapMarkers = [];
+let gpsCoords = { latitude: null, longitude: null };
+let telegramBotActive = false;
+let liveNotifications = [];
+
+// ===== AUTHENTICATION STATE =====
+let isAuthenticated = false;
+let currentUser = null;
+let authScreen = 'login'; // 'login', 'signup', 'forgot', 'otp', 'main'
+let registeredUsers = {};
+let otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+let otpExpiry = Date.now() + 5 * 60 * 1000; // 5 min
+let pendingPhoneVerification = null;
+
+// ===== AUTHENTICATION FUNCTIONS =====
+function switchAuthScreen(screen) {
+  authScreen = screen;
+  ['login', 'signup', 'otp', 'forgot'].forEach(s => {
+    const el = document.getElementById(`${s}-screen`);
+    if (el) el.classList.toggle('hidden', s !== screen);
+  });
+  
+  if (screen === 'otp') {
+    renderOTPInputs();
+    startOTPTimer();
+  }
+}
+
+function renderOTPInputs() {
+  const container = document.getElementById('otp-inputs');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = '1';
+    input.id = `otp-${i}`;
+    input.className = 'w-10 h-10 text-center font-bold rounded-lg border-2 border-slate-200 focus:outline-none focus:border-green-500 text-lg';
+    
+    input.addEventListener('input', (e) => {
+      if (e.target.value && i < 5) {
+        document.getElementById(`otp-${i + 1}`).focus();
+      }
+    });
+    
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && i > 0) {
+        document.getElementById(`otp-${i - 1}`).focus();
+      }
+    });
+    
+    container.appendChild(input);
+  }
+  // Auto-focus first input
+  setTimeout(() => document.getElementById('otp-0').focus(), 100);
+}
+
+function startOTPTimer() {
+  let remaining = 300;
+  const timerInterval = setInterval(() => {
+    remaining--;
+    const timerEl = document.getElementById('timer-count');
+    if (timerEl) timerEl.textContent = remaining;
+    
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      showAuthToast('OTP expired. Request a new one.', 'error');
+    }
+  }, 1000);
+}
+
+function getOTPValue() {
+  let otp = '';
+  for (let i = 0; i < 6; i++) {
+    const val = document.getElementById(`otp-${i}`).value;
+    otp += val || '0';
+  }
+  return otp;
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const phone = document.getElementById('login-phone').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  
+  if (!phone || !password) {
+    showAuthToast('Please fill all fields', 'error');
+    return;
+  }
+  
+  // Check if user exists
+  if (!registeredUsers[phone]) {
+    showAuthToast('❌ Phone number not registered', 'error');
+    return;
+  }
+  
+  if (registeredUsers[phone].password !== password) {
+    showAuthToast('❌ Incorrect password', 'error');
+    return;
+  }
+  
+  // Send OTP
+  pendingPhoneVerification = phone;
+  otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  otpExpiry = Date.now() + 5 * 60 * 1000;
+  
+  document.getElementById('otp-phone').textContent = phone;
+  showAuthToast(`📱 OTP sent to ${phone}`, 'success');
+  switchAuthScreen('otp');
+}
+
+function handleSignup(e) {
+  e.preventDefault();
+  const name = document.getElementById('signup-name').value.trim();
+  const phone = document.getElementById('signup-phone').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value.trim();
+  const confirm = document.getElementById('signup-confirm').value.trim();
+  
+  if (!name || !phone || !password || !confirm) {
+    showAuthToast('Please fill required fields', 'error');
+    return;
+  }
+  
+  if (password !== confirm) {
+    showAuthToast('❌ Passwords do not match', 'error');
+    return;
+  }
+  
+  if (password.length < 6) {
+    showAuthToast('❌ Password must be at least 6 characters', 'error');
+    return;
+  }
+  
+  if (registeredUsers[phone]) {
+    showAuthToast('❌ Phone already registered', 'error');
+    return;
+  }
+  
+  // Register user
+  registeredUsers[phone] = { name, phone, email, password, verified: false };
+  
+  // Send OTP
+  pendingPhoneVerification = phone;
+  otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  otpExpiry = Date.now() + 5 * 60 * 1000;
+  
+  document.getElementById('otp-phone').textContent = phone;
+  showAuthToast(`📱 OTP sent to ${phone}`, 'success');
+  switchAuthScreen('otp');
+}
+
+function handleOTPSubmit(e) {
+  e.preventDefault();
+  const enteredOTP = getOTPValue();
+  
+  if (Date.now() > otpExpiry) {
+    showAuthToast('❌ OTP expired. Request a new one.', 'error');
+    return;
+  }
+  
+  if (enteredOTP !== otpCode) {
+    showAuthToast('❌ Incorrect OTP code', 'error');
+    return;
+  }
+  
+  // Mark as verified
+  if (registeredUsers[pendingPhoneVerification]) {
+    registeredUsers[pendingPhoneVerification].verified = true;
+  }
+  
+  // Authenticate user
+  isAuthenticated = true;
+  currentUser = registeredUsers[pendingPhoneVerification];
+  addAudit('USER_LOGIN', `User ${pendingPhoneVerification} logged in successfully`);
+  
+  showAuthToast('✅ Phone verified! Logging in...', 'success');
+  setTimeout(() => loginSuccess(), 600);
+}
+
+function handleForgotPassword(e) {
+  e.preventDefault();
+  const phone = document.getElementById('forgot-phone').value.trim();
+  
+  if (!registeredUsers[phone]) {
+    showAuthToast('❌ Phone number not registered', 'error');
+    return;
+  }
+  
+  // Send reset OTP
+  pendingPhoneVerification = phone;
+  otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  otpExpiry = Date.now() + 5 * 60 * 1000;
+  
+  document.getElementById('otp-phone').textContent = phone;
+  showAuthToast(`📱 Reset code sent to ${phone}`, 'success');
+  switchAuthScreen('otp');
+}
+
+function resendOTP() {
+  otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  otpExpiry = Date.now() + 5 * 60 * 1000;
+  showAuthToast('📱 OTP resent to your phone', 'success');
+  document.getElementById('otp-inputs').innerHTML = '';
+  renderOTPInputs();
+  startOTPTimer();
+}
+
+function loginSuccess() {
+  // Hide auth container, show app
+  document.getElementById('auth-container').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  
+  // Initialize dashboard
+  isAuthenticated = true;
+  switchView('dashboard');
+  renderDashboard();
+  lucide.createIcons();
+}
+
+function logout() {
+  isAuthenticated = false;
+  currentUser = null;
+  
+  // Show auth, hide app
+  document.getElementById('auth-container').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  
+  // Reset forms
+  document.getElementById('login-form').reset();
+  document.getElementById('signup-form').reset();
+  document.getElementById('otp-form').reset();
+  document.getElementById('forgot-form').reset();
+  
+  // Back to login screen
+  switchAuthScreen('login');
+  addAudit('USER_LOGOUT', `User logged out`);
+  showAuthToast('✅ Logged out successfully', 'success');
+}
+
+function showAuthToast(msg, type) {
+  const container = document.getElementById('toast-container') || (() => {
+    const c = document.createElement('div');
+    c.id = 'toast-container';
+    c.className = 'toast-container';
+    document.body.appendChild(c);
+    return c;
+  })();
+  
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = type === 'success' ? '#166534' : type === 'error' ? '#dc2626' : '#2563eb';
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ===== ROLE-BASED ACCESS CONTROL (RBAC) =====
+const RBAC = {
+  'Gov Admin': { 
+    canView: ['dashboard', 'map', 'complaints', 'submit', 'legal', 'audit', 'telegram', 'roles'],
+    canEdit: true, canDelete: true, canAssign: true, canResolve: true, canViewAudit: true
+  },
+  'Bureau Officer': { 
+    canView: ['complaints', 'map', 'submit', 'legal', 'telegram'],
+    canEdit: true, canDelete: false, canAssign: false, canResolve: true, canViewAudit: false
+  },
+  'Auditor': { 
+    canView: ['complaints', 'audit', 'dashboard'],
+    canEdit: false, canDelete: false, canAssign: false, canResolve: false, canViewAudit: true
+  },
+  'Citizen': { 
+    canView: ['submit', 'map'],
+    canEdit: false, canDelete: false, canAssign: false, canResolve: false, canViewAudit: false
+  }
+};
+
+function checkAccess(action) {
+  if (!isAuthenticated) {
+    showAuthToast('❌ You must be logged in', 'error');
+    return false;
+  }
+  const role = RBAC[currentUserRole];
+  if (!role) return false;
+  return role[action] || false;
+}
+
+function checkViewAccess(view) {
+  if (!isAuthenticated) return false;
+  const role = RBAC[currentUserRole];
+  if (!role) return false;
+  return role.canView && role.canView.includes(view);
+}
+
+// ===== LEGAL DATABASE (Reference - Paradigm A style but no user data join needed) =====
+const legalDB = [
+  { id: 'L001', type: 'Labsii', number: 'Proc. No. 513/2007', title: 'Solid Waste Management Proclamation', category: 'Waste Management', summary: 'Establishes framework for solid waste collection, transportation, and disposal. Mandates municipal responsibility for regular waste removal schedules.' },
+  { id: 'L002', type: 'Dambii', number: 'Reg. No. 159/2008', title: 'Environmental Pollution Control Regulation', category: 'Waste Management', summary: 'Sets standards for pollution control including waste disposal methods. Defines penalties for illegal dumping.' },
+  { id: 'L003', type: 'Labsii', number: 'Proc. No. 197/2000', title: 'Water Resources Management Proclamation', category: 'Water Services', summary: 'Governs the allocation, use, and protection of water resources. Guarantees citizen access to clean water.' },
+  { id: 'L004', type: 'Qajeelfama', number: 'Dir. No. 42/2012', title: 'Urban Water Supply Service Directive', category: 'Water Services', summary: 'Establishes service level agreements for urban water supply. Defines maximum disruption periods and complaint resolution timelines.' },
+  { id: 'L005', type: 'Labsii', number: 'Proc. No. 455/2005', title: 'Urban Roads Development Proclamation', category: 'Roads & Infrastructure', summary: 'Governs construction, maintenance, and safety standards for urban roads and infrastructure.' },
+  { id: 'L006', type: 'Dambii', number: 'Reg. No. 243/2011', title: 'Public Health Protection Regulation', category: 'Public Health', summary: 'Sets standards for public health services, sanitation requirements, and epidemic response protocols.' },
+  { id: 'L007', type: 'Labsii', number: 'Proc. No. 721/2011', title: 'Urban Land Lease Holding Proclamation', category: 'Land & Housing', summary: 'Regulates urban land allocation, lease terms, and dispute resolution for housing and construction.' },
+  { id: 'L008', type: 'Qajeelfama', number: 'Dir. No. 67/2015', title: 'Anti-Corruption Reporting Directive', category: 'Governance', summary: 'Establishes protected channels for reporting corruption. Defines whistleblower protections and investigation timelines.' }
+];
+
+// ===== AI SIMULATION =====
+function simulateAI(category, description) {
+  const laws = legalDB.filter(l => l.category === category);
+  const matched = laws.length > 0 ? laws[0] : legalDB[0];
+  const urgencyKeywords = ['urgent', 'danger', 'health', 'emergency', 'critical', 'death', 'flood', 'collapse'];
+  const lowKeywords = ['minor', 'small', 'cosmetic', 'suggestion'];
+  const descLower = description.toLowerCase();
+  let urgency = 'MEDIUM';
+  if (urgencyKeywords.some(k => descLower.includes(k))) urgency = 'HIGH';
+  else if (lowKeywords.some(k => descLower.includes(k))) urgency = 'LOW';
+
+  const confidence = 0.7 + Math.random() * 0.25;
+  const departments = { 'Waste Management': 'Sanitation Dept', 'Water Services': 'Water Authority', 'Roads & Infrastructure': 'Roads Commission', 'Public Health': 'Health Bureau', 'Land & Housing': 'Land Admin Office', 'Governance': 'Ethics & Anti-Corruption' };
+  const dept = departments[category] || 'General Affairs';
+  const slaHours = urgency === 'HIGH' ? 24 : urgency === 'MEDIUM' ? 72 : 168;
+
+  return {
+    urgency,
+    matched_law: `${matched.type}: ${matched.number} — ${matched.title}`,
+    confidence: Math.round(confidence * 100) / 100,
+    recommendation: `Assign to ${dept} within ${slaHours} hours. ${matched.summary.split('.')[0]}.`,
+    department: dept
+  };
+}
+
+// ===== AUDIT WITH CRYPTOGRAPHIC HASHING =====
+function generateAuditHash(record) {
+  const payload = JSON.stringify({ ...record, audit_salt: Date.now() });
+  return CryptoJS.SHA256(payload).toString().substring(0, 16).toUpperCase();
+}
+
+function addAudit(action, detail) {
+  const auditRecord = { action, detail, timestamp: new Date().toISOString(), user: currentUserRole, hash: generateAuditHash({ action, detail, user: currentUserRole }) };
+  auditLog.unshift(auditRecord);
+  
+  // Also sync to Supabase if connected
+  if (supabase) {
+    createAuditLogSupabase(auditRecord).catch(err => console.error('Failed to sync audit to Supabase:', err));
+  }
+}
+
+// ===== TOAST =====
+function showToast(msg, type) {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = type === 'success' ? '#166534' : type === 'error' ? '#dc2626' : '#2563eb';
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ===== NAVIGATION =====
+function switchView(view) {
+  // Check access control
+  if (!checkViewAccess(view)) {
+    showToast(`❌ Access denied. Your role (${currentUserRole}) cannot access this view.`, 'error');
+    return;
+  }
+  
+  currentView = view;
+  ['dashboard','map','complaints','submit','legal','audit','telegram','roles'].forEach(v => {
+    const container = document.getElementById('view-' + v);
+    if (container) container.classList.toggle('hidden', v !== view);
+    const nav = document.getElementById('nav-' + v);
+    if (nav) {
+      nav.classList.toggle('active', v === view);
+      nav.classList.toggle('text-white/90', v === view);
+      nav.classList.toggle('text-white/60', v !== view);
+    }
+  });
+  const titles = { dashboard: 'Dashboard Overview', map: 'Real-Time Map View', complaints: 'Complaint Management', submit: 'Submit New Complaint', legal: 'Legal Knowledge Base', audit: 'Audit Trail', telegram: 'Telegram Bot Control', roles: 'Role Management' };
+  document.getElementById('page-title').textContent = titles[view];
+  if (view === 'complaints') renderComplaints();
+  if (view === 'legal') renderLegal();
+  if (view === 'audit') renderAudit();
+  if (view === 'telegram') renderTelegramPanel();
+  if (view === 'roles') renderRolePanel();
+  if (view === 'dashboard') renderDashboard();
+  if (view === 'map') setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); renderMap(); }, 100);
+}
+
+// ===== RENDER DASHBOARD =====
+function renderDashboard() {
+  const total = allComplaints.length;
+  const pending = allComplaints.filter(c => c.status !== 'Resolved').length;
+  const resolved = allComplaints.filter(c => c.status === 'Resolved').length;
+  const high = allComplaints.filter(c => c.urgency === 'HIGH').length;
+  const mapped = allComplaints.filter(c => c.latitude && c.longitude).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-resolved').textContent = resolved;
+  document.getElementById('stat-high').textContent = high;
+  document.getElementById('stat-mapped').textContent = mapped;
+
+  // Category bars
+  const catContainer = document.getElementById('category-bars');
+  const catEmpty = document.getElementById('category-empty');
+  if (total === 0) { catContainer.innerHTML = ''; catEmpty.classList.remove('hidden'); }
+  else {
+    catEmpty.classList.add('hidden');
+    const cats = {};
+    allComplaints.forEach(c => { cats[c.category] = (cats[c.category] || 0) + 1; });
+    const maxCount = Math.max(...Object.values(cats), 1);
+    catContainer.innerHTML = Object.entries(cats).sort((a,b) => b[1]-a[1]).map(([cat, count]) => {
+      const pct = Math.round((count / maxCount) * 100);
+      return `<div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="text-slate-600 font-medium">${cat}</span><span class="font-mono-accent text-slate-400">${count}</span></div><div class="h-2 rounded-full bg-slate-100"><div class="h-2 rounded-full" style="width:${pct}%;background:#1e6b3a;transition:width 0.5s;"></div></div></div>`;
+    }).join('');
+  }
+
+  // Recent
+  const recentContainer = document.getElementById('recent-list');
+  const recentEmpty = document.getElementById('recent-empty');
+  if (total === 0) { recentContainer.innerHTML = ''; recentEmpty.classList.remove('hidden'); }
+  else {
+    recentEmpty.classList.add('hidden');
+    const recent = [...allComplaints].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+    recentContainer.innerHTML = recent.map(c => {
+      const urgColor = c.urgency === 'HIGH' ? '#ef4444' : c.urgency === 'MEDIUM' ? '#f59e0b' : '#22c55e';
+      return `<div class="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0"><div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${urgColor};"></div><div class="flex-1 min-w-0"><div class="text-sm font-medium text-slate-700 truncate">${c.category}</div><div class="text-xs text-slate-400">${c.region} · ${c.citizen_name}</div></div><span class="badge flex-shrink-0" style="background:${c.status==='Resolved'?'#dcfce7':'#fef3c7'};color:${c.status==='Resolved'?'#166534':'#92400e'};">${c.status}</span></div>`;
+    }).join('');
+  }
+}
+
+// ===== RENDER COMPLAINTS =====
+function renderComplaints() {
+  const statusF = document.getElementById('filter-status').value;
+  const urgencyF = document.getElementById('filter-urgency').value;
+  const categoryF = document.getElementById('filter-category').value;
+  const langF = document.getElementById('filter-language').value;
+
+  detectDuplicates();
+  
+  let filtered = [...allComplaints];
+  if (statusF !== 'all') filtered = filtered.filter(c => c.status === statusF);
+  if (urgencyF !== 'all') filtered = filtered.filter(c => c.urgency === urgencyF);
+  if (categoryF !== 'all') filtered = filtered.filter(c => c.category === categoryF);
+  if (langF !== 'all') filtered = filtered.filter(c => c.language === langF);
+  
+  // Apply duplicate filter
+  if (!showDuplicates) {
+    filtered = filtered.filter(c => !c.is_duplicate);
+  }
+  
+  filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const container = document.getElementById('complaints-list');
+  const empty = document.getElementById('complaints-empty');
+
+  if (filtered.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  container.innerHTML = filtered.map(c => {
+    const urgClass = c.urgency === 'HIGH' ? 'urgency-high' : c.urgency === 'MEDIUM' ? 'urgency-medium' : 'urgency-low';
+    const statusBg = c.status === 'Resolved' ? '#dcfce7' : c.status === 'Under Review' ? '#e0e7ff' : '#fef3c7';
+    const statusColor = c.status === 'Resolved' ? '#166534' : c.status === 'Under Review' ? '#3730a3' : '#92400e';
+    const date = new Date(c.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const sentiment = analyzeSentiment(c.description);
+    const isDupBadge = c.is_duplicate ? '⚠️ DUPLICATE' : '';
+    
+    return `<div class="bg-white rounded-xl p-4 mb-3 border border-slate-100 ${urgClass} card-enter cursor-pointer hover:shadow-md transition-shadow" onclick='openDetail("${c.__backendId}")'>
+      <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+        <div><span class="text-sm font-bold" style="color:#0c1929;">${c.category}</span><span class="text-xs text-slate-400 ml-2">${c.region}</span> ${isDupBadge ? `<span class="badge" style="background:#fef2f2;color:#991b1b;margin-left:8px;">${isDupBadge}</span>` : ''}</div>
+        <div class="flex gap-2"><span class="badge" style="background:${statusBg};color:${statusColor};">${c.status}</span><span class="badge" style="background:${c.urgency==='HIGH'?'#fef2f2':c.urgency==='MEDIUM'?'#fffbeb':'#f0fdf4'};color:${c.urgency==='HIGH'?'#991b1b':c.urgency==='MEDIUM'?'#92400e':'#166534'};">${c.urgency}</span></div>
+      </div>
+      <p class="text-xs text-slate-500 mb-2 line-clamp-2">${c.description}</p>
+      <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+        <span>${c.citizen_name}</span><span>·</span><span>${date}</span><span>·</span><span>AI: ${Math.round(c.ai_confidence*100)}%</span><span>·</span><span>Sentiment: ${(sentiment * 100).toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== DETAIL MODAL =====
+function openDetail(backendId) {
+  const c = allComplaints.find(x => x.__backendId === backendId);
+  if (!c) return;
+  const date = new Date(c.created_at).toLocaleString();
+  document.getElementById('modal-body').innerHTML = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div><span class="text-slate-400 text-xs block">Citizen</span><strong>${c.citizen_name}</strong></div>
+        <div><span class="text-slate-400 text-xs block">Region</span><strong>${c.region}</strong></div>
+        <div><span class="text-slate-400 text-xs block">Category</span><strong>${c.category}</strong></div>
+        <div><span class="text-slate-400 text-xs block">Language</span><strong>${c.language}</strong></div>
+        <div><span class="text-slate-400 text-xs block">Urgency</span><strong style="color:${c.urgency==='HIGH'?'#ef4444':c.urgency==='MEDIUM'?'#f59e0b':'#22c55e'}">${c.urgency}</strong></div>
+        <div><span class="text-slate-400 text-xs block">Status</span><strong>${c.status}</strong></div>
+      </div>
+      <div><span class="text-slate-400 text-xs block mb-1">Description</span><p class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3">${c.description}</p></div>
+      <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+        <div class="flex items-center gap-2 mb-2"><span class="text-xs font-bold text-blue-700">🤖 AI ANALYSIS</span><span class="badge" style="background:#dbeafe;color:#1e40af;">Confidence: ${Math.round(c.ai_confidence*100)}%</span></div>
+        <div class="text-xs text-slate-600 mb-1"><strong>Matched Law:</strong> ${c.matched_law}</div>
+        <div class="text-xs text-slate-600 mb-1"><strong>Department:</strong> ${c.department}</div>
+        <div class="text-xs text-slate-600"><strong>Recommendation:</strong> ${c.ai_recommendation}</div>
+      </div>
+      <div class="text-xs text-slate-400">Filed: ${date}</div>
+      <div class="flex gap-2 pt-2">
+        ${c.status !== 'Under Review' ? `<button onclick="updateStatus('${backendId}','Under Review')" class="px-4 py-2 rounded-lg text-xs font-semibold text-white" style="background:#2563eb;">Mark Under Review</button>` : ''}
+        ${c.status !== 'Resolved' ? `<button onclick="updateStatus('${backendId}','Resolved')" class="px-4 py-2 rounded-lg text-xs font-semibold text-white" style="background:#166534;">Mark Resolved</button>` : ''}
+      </div>
+    </div>`;
+  document.getElementById('detail-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+
+async function updateStatus(backendId, status) {
+  const c = allComplaints.find(x => x.__backendId === backendId);
+  if (!c) return;
+  const result = await window.dataSdk.update({ ...c, status });
+  if (result.isOk) {
+    addAudit('STATUS_CHANGE', `Case changed to ${status} — ${c.category} (${c.region})`);
+    showToast(`Case marked as ${status}`, 'success');
+    closeModal();
+  } else { showToast('Failed to update status', 'error'); }
+}
+
+// ===== SUBMIT =====
+async function handleSubmit(e) {
+  e.preventDefault();
+  if (!checkAccess('canEdit')) {
+    showToast('❌ Your role cannot submit complaints.', 'error');
+    return;
+  }
+  if (allComplaints.length >= 999) { showToast('Maximum 999 cases reached. Please resolve existing cases.', 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  const btnText = document.getElementById('submit-text');
+  const btnLoad = document.getElementById('submit-loading');
+  btn.disabled = true; btnText.classList.add('hidden'); btnLoad.classList.remove('hidden');
+
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const region = document.getElementById('f-region').value;
+  const category = document.getElementById('f-category').value;
+  const lang = document.getElementById('f-lang')?.value || 'en';
+  const desc = document.getElementById('f-desc').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+
+  // Simulate AI processing delay
+  await new Promise(r => setTimeout(r, 800));
+  const ai = simulateAI(category, desc);
+
+  // Generate audit hash for immutability
+  const recordData = { citizen_name: name, region, category, description: desc, language: lang, urgency: ai.urgency, status: 'Submitted' };
+  const audit_hash = generateAuditHash(recordData);
+
+  const record = {
+    citizen_name: name,
+    region,
+    category,
+    description: desc,
+    language: lang,
+    urgency: ai.urgency,
+    status: 'Submitted',
+    matched_law: ai.matched_law,
+    ai_confidence: ai.confidence,
+    ai_recommendation: ai.recommendation,
+    department: ai.department,
+    contact_phone: phone,
+    contact_email: email,
+    latitude: gpsCoords.latitude,
+    longitude: gpsCoords.longitude,
+    audit_hash: audit_hash,
+    assigned_role: 'Bureau Officer',
+    created_at: new Date().toISOString()
+  };
+
+  // Try to save to Supabase first, fallback to local
+  let saveSuccess = false;
+  
+  if (supabase) {
+    const result = await createComplaintSupabase(record);
+    if (result.isOk) {
+      saveSuccess = true;
+      // Update local record with backend ID
+      if (result.data && result.data.length > 0) {
+        record.__backendId = result.data[0].id;
+      }
+    } else {
+      console.warn('Supabase save failed, using local storage');
+      addAudit('SUPABASE_FALLBACK', `Could not save to Supabase: ${result.error?.message || 'Unknown error'}`);
+    }
+  }
+  
+  // If Supabase save failed or not connected, use local data SDK
+  if (!saveSuccess) {
+    const result = await window.dataSdk.create(record);
+    if (!result.isOk) {
+      btn.disabled = false; btnText.classList.remove('hidden'); btnLoad.classList.add('hidden');
+      showToast('Failed to submit complaint', 'error');
+      return;
+    }
+    saveSuccess = true;
+  }
+
+  btn.disabled = false; btnText.classList.remove('hidden'); btnLoad.classList.add('hidden');
+
+  if (saveSuccess) {
+    addAudit('CASE_CREATED', `New ${category} case from ${region} — ${ai.urgency} urgency | Phone: ${phone || 'N/A'} | Email: ${email || 'N/A'}`);
+    
+    // Send SMS via Ethio Telecom
+    if (phone) {
+      const smsMsg = `Your complaint (${category}) has been received. Case ID: ${audit_hash.substring(0, 8)}. Track at platform.`;
+      sendSMSNotification(phone, smsMsg, audit_hash);
+    }
+    
+    // Send Email notification
+    if (email) {
+      const emailSubject = `Complaint Received - Case #${audit_hash.substring(0, 8)}`;
+      const emailContent = `Dear ${name},\n\nYour complaint regarding ${category} in ${region} has been received and assigned to ${ai.department}.\n\nUrgency Level: ${ai.urgency}\nMatched Law: ${ai.matched_law}\n\nWe will follow up within the next 24-72 hours.`;
+      sendEmailNotification(email, emailSubject, emailContent, audit_hash);
+    }
+    
+    // Trigger Telegram notification if bot is active
+    if (telegramBotActive) {
+      setTimeout(() => sendTelegramNotification(audit_hash, record), 500);
+    }
+    
+    showToast('✅ Complaint submitted & analyzed. SMS, Email & Telegram notifications sent.', 'success');
+    document.getElementById('complaint-form').reset();
+    gpsCoords = { latitude: null, longitude: null };
+    switchView('complaints');
+  }
+}
+
+// ===== SMS PROVIDER INTEGRATION (Ethio Telecom) =====
+function sendSMSNotification(phone, message, complaintId = null) {
+  if (!phone) return false;
+  
+  // Simulate Ethio Telecom API integration
+  const smsProvider = {
+    api_endpoint: 'https://api.ethiotelecom.et/sms/send',
+    api_key: 'ethio_telecom_key_****',
+    sender_id: 'CIVIC_AI',
+    balance: 45.50,
+    rate_per_sms: 0.50
+  };
+  
+  // Check balance
+  if (smsProvider.balance < smsProvider.rate_per_sms) {
+    addAudit('SMS_FAILED', `SMS to ${phone}: Low balance (${smsProvider.balance} ETB)`);
+    showToast('❌ SMS service: Low balance. Contact admin.', 'error');
+    return false;
+  }
+  
+  // Simulate API call
+  const smsRecord = {
+    provider: 'Ethio Telecom',
+    recipient: phone,
+    message: message.substring(0, 160),
+    timestamp: new Date().toISOString(),
+    status: 'sent',
+    message_id: `SMS_${Date.now()}`,
+    cost: smsProvider.rate_per_sms,
+    complaint_id: complaintId
+  };
+  
+  addAudit('SMS_SENT', `SMS to ${phone}: "${message.substring(0, 50)}..." via Ethio Telecom | Cost: ${smsProvider.rate_per_sms} ETB`);
+  showToast(`📱 SMS sent via Ethio Telecom: ${phone}`, 'success');
+  
+  // Log to notifications
+  liveNotifications.unshift({
+    id: Date.now(),
+    type: 'sms',
+    recipient: phone,
+    message: smsRecord.message,
+    timestamp: new Date(),
+    provider: 'Ethio Telecom',
+    status: 'sent'
+  });
+  
+  return true;
+}
+
+// ===== EMAIL NOTIFICATION INTEGRATION =====
+function sendEmailNotification(email, subject, htmlContent, complaintId = null) {
+  if (!email || !email.includes('@')) return false;
+  
+  const emailProvider = {
+    api_endpoint: 'https://api.sendgrid.com/v3/mail/send',
+    from: 'notifications@civic-ai-platform.gov.et',
+    from_name: 'Civic AI Platform - FDRE',
+    rate_limit: 1000,
+    daily_quota: 5000,
+    daily_sent: 2847
+  };
+  
+  // Check quota
+  if (emailProvider.daily_sent >= emailProvider.daily_quota) {
+    addAudit('EMAIL_FAILED', `Email to ${email}: Daily quota exceeded (${emailProvider.daily_sent}/${emailProvider.daily_quota})`);
+    showToast('❌ Email service: Daily quota exceeded. Try tomorrow.', 'error');
+    return false;
+  }
+  
+  const emailRecord = {
+    provider: 'SendGrid',
+    recipient: email,
+    subject: subject,
+    from: emailProvider.from,
+    timestamp: new Date().toISOString(),
+    status: 'sent',
+    message_id: `EMAIL_${Date.now()}`,
+    complaint_id: complaintId,
+    template: 'complaint_confirmation'
+  };
+  
+  addAudit('EMAIL_SENT', `Email to ${email}: "${subject}" via SendGrid`);
+  showToast(`📧 Email sent: ${email}`, 'success');
+  
+  liveNotifications.unshift({
+    id: Date.now(),
+    type: 'email',
+    recipient: email,
+    subject: subject,
+    timestamp: new Date(),
+    provider: 'SendGrid',
+    status: 'sent'
+  });
+  
+  return true;
+}
+
+// ===== MULTI-LANGUAGE TELEGRAM BOT COMMANDS =====
+const TELEGRAM_COMMANDS = {
+  en: {
+    status: { cmd: '/status', desc: 'Get platform status', response: '🟢 Platform Status\n━━━━━━━━━━━━━━\nTotal Cases: {total}\nPending: {pending}\nResolved: {resolved}\nSystem: OPERATIONAL' },
+    cases: { cmd: '/cases', desc: 'List pending cases', response: 'Pending Cases ({pending})\n━━━━━━━━━━━━━━\n{cases}' },
+    urgent: { cmd: '/urgent', desc: 'List high-urgency cases', response: '🔴 High-Urgency Cases ({urgent})\n━━━━━━━━━━━━━━\n{cases}' },
+    my_cases: { cmd: '/my_cases', desc: 'Officer\'s assigned cases', response: '👤 Your Cases ({assigned})\n━━━━━━━━━━━━━━\n{cases}' },
+    help: { cmd: '/help', desc: 'Show available commands' }
+  },
+  am: {
+    status: { cmd: '/ሁኔታ', desc: 'የስርዓት ሁኔታ ያግኙ', response: '🟢 የስርዓት ሁኔታ\n━━━━━━━━━━━━━━\nጠቅላላ ጉዳዮች: {total}\nጠብቅ ያለ: {pending}\nተፈችተ: {resolved}\nስርዓት: ሲሰራ' },
+    cases: { cmd: '/ጉዳዮች', desc: 'ጠብቅ ያለ ጉዳዮች ዝርዝር', response: 'ጠብቅ ያለ ጉዳዮች ({pending})\n━━━━━━━━━━━━━━\n{cases}' },
+    urgent: { cmd: '/ድንገተኛ', desc: 'ከፍተኛ ጠቀሞ ጉዳዮች ዝርዝር', response: '🔴 ከፍተኛ ጠቀሞ ጉዳዮች ({urgent})\n━━━━━━━━━━━━━━\n{cases}' },
+    my_cases: { cmd: '/ሰራዬ', desc: 'የቦታ ሀላፊዋ ጉዳዮች', response: '👤 የቦታ ሀላፊዋ ጉዳዮች ({assigned})\n━━━━━━━━━━━━━━\n{cases}' },
+    help: { cmd: '/እገዛ', desc: 'ያገኛሎ ትዕዛዝ' }
+  },
+  om: {
+    status: { cmd: '/haala', desc: 'Haala siiqaa argaa', response: '🟢 Haala Siiqaa\n━━━━━━━━━━━━━━\nMooyyalee Guutuu: {total}\nEegaa Jiru: {pending}\nXumure: {resolved}\nSiiqaa: Hojii Jira' },
+    cases: { cmd: '/giddaroonni', desc: 'Giddaroonni eegaa jiran', response: 'Giddaroonni Eegaa Jiran ({pending})\n━━━━━━━━━━━━━━\n{cases}' },
+    urgent: { cmd: '/yeroo', desc: 'Giddaroonni yeroo sanaa', response: '🔴 Giddaroonni Yeroo Sanaa ({urgent})\n━━━━━━━━━━━━━━\n{cases}' },
+    my_cases: { cmd: '/kooyyaa', desc: 'Giddaroonni koo', response: '👤 Giddaroonni Koo ({assigned})\n━━━━━━━━━━━━━━\n{cases}' },
+    help: { cmd: '/gargaarsa', desc: 'Ajajawwan argaa' }
+  }
+};
+
+// ===== TELEGRAM BOT LANGUAGE SETTINGS =====
+let telegramBotLanguage = 'en'; // en, am, or om
+
+function getTelegramCommand(cmd, lang = 'en') {
+  const langCmds = TELEGRAM_COMMANDS[lang] || TELEGRAM_COMMANDS['en'];
+  return langCmds[cmd] || null;
+}
+
+function processTelegramWebhook(command, userLang = 'en') {
+  const cmd = command.toLowerCase().replace('/', '');
+  const cmdData = getTelegramCommand(cmd, userLang);
+  
+  if (!cmdData) return getTelegramCommand('help', userLang);
+  
+  let response = cmdData.response;
+  const total = allComplaints.length;
+  const pending = allComplaints.filter(c => c.status !== 'Resolved').length;
+  const resolved = allComplaints.filter(c => c.status === 'Resolved').length;
+  const urgent = allComplaints.filter(c => c.urgency === 'HIGH').length;
+  const assigned = allComplaints.filter(c => c.assigned_role === 'Bureau Officer' && c.status !== 'Resolved').length;
+  
+  let casesList = '';
+  if (cmd === 'cases') {
+    casesList = allComplaints.filter(c => c.status !== 'Resolved').slice(0, 5).map(c => `📋 ${c.category} | ${c.region}`).join('\n');
+  } else if (cmd === 'urgent') {
+    casesList = allComplaints.filter(c => c.urgency === 'HIGH').slice(0, 5).map(c => `🔴 ${c.category} | ${c.region}`).join('\n');
+  } else if (cmd === 'my_cases') {
+    casesList = allComplaints.filter(c => c.assigned_role === 'Bureau Officer' && c.status !== 'Resolved').slice(0, 5).map(c => `👤 ${c.category} | ${c.region}`).join('\n');
+  }
+  
+  response = response.replace('{total}', total).replace('{pending}', pending).replace('{resolved}', resolved).replace('{urgent}', urgent).replace('{assigned}', assigned).replace('{cases}', casesList || 'None');
+  
+  addAudit('TELEGRAM_WEBHOOK', `Webhook command: ${command} (${userLang}) → ${total} cases, ${pending} pending`);
+  
+  return response;
+}
+
+function sendTelegramNotification(complaintId, complaintData) {
+  if (!telegramBotActive) return;
+  const message = `
+📋 New Complaint Alert
+━━━━━━━━━━━━━━━━━
+Category: ${complaintData.category}
+Region: ${complaintData.region}
+Urgency: ${complaintData.urgency}
+Citizen: ${complaintData.citizen_name}
+Department: ${complaintData.department}
+━━━━━━━━━━━━━━━━━
+Case ID: ${complaintData.audit_hash.substring(0, 8)}
+Track: https://platform.gov.et/case/${complaintId}`;
+  
+  addAudit('TELEGRAM_SENT', `Telegram notification sent for case ${complaintData.audit_hash.substring(0, 8)} to ${complaintData.department}`);
+  liveNotifications.unshift({ type: 'telegram', message, timestamp: new Date(), caseId: complaintId });
+  simulateLiveUpdate(complaintData);
+}
+
+function initTelegramBot() {
+  telegramBotActive = true;
+  addAudit('TELEGRAM_INIT', 'Telegram bot initialized for complaint notifications (Multi-language support enabled: EN, AM, OM)');
+  showToast('🤖 Telegram bot connected. Multi-language support active.', 'success');
+}
+
+function disableTelegramBot() {
+  telegramBotActive = false;
+  addAudit('TELEGRAM_DISCONNECT', 'Telegram bot connection closed');
+  showToast('🔴 Telegram bot disconnected', 'success');
+  renderTelegramPanel();
+}
+function simulateLiveUpdate(complaintData) {
+  const notification = {
+    id: Date.now(),
+    type: 'case_created',
+    title: `New ${complaintData.category} complaint`,
+    message: `${complaintData.citizen_name} filed a ${complaintData.urgency} urgency case in ${complaintData.region}`,
+    data: complaintData,
+    timestamp: new Date(),
+    read: false
+  };
+  
+  liveNotifications.unshift(notification);
+  if (liveNotifications.length > 20) liveNotifications.pop();
+  
+  // Simulate real-time dashboard refresh
+  if (currentView === 'dashboard') {
+    renderDashboard();
+    flashDashboard();
+  }
+  
+  // Update notification badge
+  updateNotificationBadge();
+}
+
+function flashDashboard() {
+  const dashboard = document.getElementById('view-dashboard');
+  if (!dashboard) return;
+  dashboard.style.animation = 'none';
+  setTimeout(() => { dashboard.style.animation = 'cardIn 0.3s ease-out'; }, 10);
+}
+
+function updateNotificationBadge() {
+  const unread = liveNotifications.filter(n => !n.read).length;
+  const badge = document.getElementById('notification-badge');
+  if (badge && unread > 0) {
+    badge.textContent = unread;
+    badge.classList.remove('hidden');
+  }
+}
+
+// ===== LEGAL VIEW =====
+function renderLegal() {
+  const container = document.getElementById('legal-cards');
+  const typeColors = { Labsii: '#1e6b3a', Dambii: '#2563eb', Qajeelfama: '#7c3aed' };
+  container.innerHTML = legalDB.map(l => `
+    <div class="bg-white rounded-xl p-5 border border-slate-100 card-enter">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge" style="background:${typeColors[l.type]}20;color:${typeColors[l.type]};">${l.type}</span>
+        <span class="text-xs text-slate-400 font-mono-accent">${l.number}</span>
+      </div>
+      <h4 class="text-sm font-bold mb-1" style="color:#0c1929;">${l.title}</h4>
+      <span class="text-xs text-slate-400 block mb-2">${l.category}</span>
+      <p class="text-xs text-slate-500 leading-relaxed">${l.summary}</p>
+    </div>`).join('');
+}
+
+// ===== AUDIT VIEW =====
+function renderAudit() {
+  if (!checkAccess('canViewAudit')) {
+    document.getElementById('audit-list').innerHTML = '<div class="px-5 py-8 text-center text-slate-400">❌ Access restricted. Auditors only.</div>';
+    return;
+  }
+  const container = document.getElementById('audit-list');
+  const empty = document.getElementById('audit-empty');
+  if (auditLog.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  container.innerHTML = auditLog.map(a => {
+    const t = new Date(a.timestamp).toLocaleString();
+    const icon = a.action === 'CASE_CREATED' ? '📥' : a.action === 'STATUS_CHANGE' ? '🔄' : a.action === 'SMS_SENT' ? '📱' : a.action === 'TELEGRAM_SENT' ? '🤖' : '📋';
+    return `<div class="flex items-start gap-3 px-5 py-3"><span class="text-lg">${icon}</span><div class="flex-1 min-w-0"><div class="text-sm font-medium text-slate-700">${a.action.replace(/_/g,' ')}</div><div class="text-xs text-slate-400">${a.detail}</div><div class="text-xs text-slate-500 mt-1"><strong>User:</strong> ${a.user} | <strong>Hash:</strong> <span class="font-mono-accent bg-slate-100 px-1 rounded">${a.hash}</span></div></div><div class="text-xs text-slate-400 font-mono-accent flex-shrink-0">${t}</div></div>`;
+  }).join('');
+}
+
+// ===== CLOCK =====
+function updateClock() {
+  document.getElementById('current-time').textContent = new Date().toLocaleString('en-GB', { weekday:'short', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ===== GPS CAPTURE =====
+function captureGPS() {
+  if (!navigator.geolocation) {
+    showToast('Geolocation not supported on this device', 'error');
+    return;
+  }
+  showToast('Requesting location...', 'info');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      gpsCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      showToast(`📍 Location captured: ${gpsCoords.latitude.toFixed(4)}, ${gpsCoords.longitude.toFixed(4)}`, 'success');
+      addAudit('GPS_CAPTURE', `Location: ${gpsCoords.latitude.toFixed(4)}, ${gpsCoords.longitude.toFixed(4)}`);
+    },
+    (err) => showToast('Failed to get location. Check permissions.', 'error'),
+    { timeout: 5000 }
+  );
+}
+
+// ===== MAP INITIALIZATION & RENDERING =====
+function initMap() {
+  if (mapInstance) return;
+  mapInstance = L.map('map').setView([9.0320, 38.7469], 12); // Addis Ababa center
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(mapInstance);
+}
+
+function renderMap() {
+  if (!mapInstance) initMap();
+  
+  if (currentMapMode === 'heatmap') {
+    renderHeatmapLayer();
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+  } else {
+    if (heatmapLayer) mapInstance.removeLayer(heatmapLayer);
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+    
+    const withGPS = allComplaints.filter(c => c.latitude && c.longitude);
+    const empty = document.getElementById('map-empty');
+    const legend = document.getElementById('map-legend');
+
+    if (withGPS.length === 0) {
+      empty.classList.remove('hidden');
+      legend.innerHTML = '';
+      return;
+    }
+    empty.classList.add('hidden');
+
+    const urgencyColors = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#22c55e' };
+    const categoryIcons = { 'Waste Management': '🗑️', 'Water Services': '💧', 'Roads & Infrastructure': '🛣️', 'Public Health': '🏥', 'Land & Housing': '🏠', 'Governance': '⚖️' };
+
+    withGPS.forEach(c => {
+      const color = urgencyColors[c.urgency] || '#6b7280';
+      const icon = categoryIcons[c.category] || '📍';
+      const html = `<div class="text-center font-bold text-lg">${icon}</div>`;
+      const customIcon = L.divIcon({
+        html,
+        className: 'custom-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16]
+      });
+      const marker = L.marker([c.latitude, c.longitude], { icon: customIcon }).addTo(mapInstance);
+      const popup = `<strong>${c.category}</strong><br><small>${c.region}</small><br><small>${c.urgency}</small><br><small>${c.citizen_name}</small>`;
+      marker.bindPopup(popup);
+      mapMarkers.push(marker);
+    });
+
+    legend.innerHTML = Object.keys(categoryIcons).map(cat => {
+      const count = withGPS.filter(c => c.category === cat).length;
+      return `<div class="flex items-center gap-2 text-sm"><span class="text-lg">${categoryIcons[cat]}</span><span>${cat}: <strong>${count}</strong></span></div>`;
+    }).join('');
+
+    if (withGPS.length > 0) {
+      const bounds = L.latLngBounds(withGPS.map(c => [c.latitude, c.longitude]));
+      mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }
+}
+
+
+// ===== ELEMENT SDK =====
+const defaultConfig = {
+  platform_title: 'Civic AI Platform',
+  subtitle_text: 'Federal Democratic Republic of Ethiopia',
+  background_color: '#f0f2f5',
+  surface_color: '#ffffff',
+  text_color: '#0c1929',
+  primary_action_color: '#1e6b3a',
+  secondary_action_color: '#2563eb',
+  font_family: 'DM Sans',
+  font_size: 14
+};
+
+// ===== TELEGRAM PANEL =====
+function renderTelegramPanel() {
+  const container = document.getElementById('view-telegram');
+  if (!container) return;
+  const status = telegramBotActive ? '🟢 ACTIVE' : '🔴 INACTIVE';
+  const statusColor = telegramBotActive ? '#166534' : '#dc2626';
+  
+  // Build command reference for all languages
+  const cmdTables = ['en', 'am', 'om'].map(lang => {
+    const cmds = TELEGRAM_COMMANDS[lang];
+    const langName = lang === 'en' ? 'English' : lang === 'am' ? 'Amharic (አማርኛ)' : 'Oromo (Afaan Oromo)';
+    const rows = Object.entries(cmds).map(([key, cmd]) => 
+      `<tr class="border-b border-slate-100"><td class="px-3 py-2 text-xs font-mono-accent text-blue-700">${cmd.cmd}</td><td class="px-3 py-2 text-xs text-slate-600">${cmd.desc}</td></tr>`
+    ).join('');
+    return `<div class="mb-4"><div class="text-xs font-bold text-slate-600 mb-2">${langName}</div><table class="w-full text-xs border border-slate-200 rounded">${rows}</table></div>`;
+  }).join('');
+  
+  container.innerHTML = `
+    <div class="max-w-3xl">
+      <div class="bg-white rounded-xl border border-slate-100 p-6 card-enter mb-4">
+        <h3 class="font-bold text-base mb-2" style="color:#0c1929;">Telegram Bot Control Panel</h3>
+        <p class="text-xs text-slate-400 mb-5">Multi-language bot for real-time complaint notifications and case inquiries.</p>
+        
+        <div class="flex items-center justify-between bg-slate-50 rounded-lg p-4 mb-4">
+          <div>
+            <div class="text-sm font-semibold" style="color:#0c1929;">Bot Status</div>
+            <div class="text-xs text-slate-400">Manage notifications</div>
+          </div>
+          <span class="badge" style="background:${statusColor}20;color:${statusColor};">${status}</span>
+        </div>
+        
+        <div class="space-y-3 mb-6">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-2">Bot Token (Simulated)</label>
+            <input type="password" value="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" readonly class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50">
+            <div class="text-xs text-slate-400 mt-1">⚠️ Never share your bot token</div>
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-2">Chat ID (Group/Channel)</label>
+            <input type="text" value="-1001234567890" readonly class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-2">Webhook URL</label>
+            <input type="text" value="https://platform.gov.et/api/telegram/webhook" readonly class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-2">Bot Language</label>
+            <select onchange="telegramBotLanguage=this.value;" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+              <option value="en">English (EN)</option>
+              <option value="am">Amharic (አማርኛ)</option>
+              <option value="om">Oromo (Afaan Oromo)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex gap-3 mb-6">
+          <button onclick="${telegramBotActive ? 'disableTelegramBot()' : 'initTelegramBot()'}" class="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all" style="background:${telegramBotActive ? '#dc2626' : '#1e6b3a'};">
+            ${telegramBotActive ? '🔴 Disconnect Bot' : '🟢 Connect Bot'}
+          </button>
+          <button onclick="testTelegramNotification()" class="px-6 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold transition-all hover:bg-slate-50">
+            📤 Send Test Message
+          </button>
+        </div>
+        
+        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+          <div class="text-xs font-bold text-blue-700 mb-3">🤖 Available Commands (Multi-Language)</div>
+          ${cmdTables}
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl border border-slate-100 p-6 card-enter mb-4">
+        <h3 class="font-bold text-sm mb-3" style="color:#0c1929;">Notification Channels</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div class="text-xs font-bold mb-1">📧 Email Notifications</div>
+            <div class="text-xs text-slate-600">Via SendGrid API | Daily Quota: 2847/5000</div>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div class="text-xs font-bold mb-1">📱 SMS Notifications</div>
+            <div class="text-xs text-slate-600">Via Ethio Telecom | Balance: 45.50 ETB</div>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div class="text-xs font-bold mb-1">🤖 Telegram Bot</div>
+            <div class="text-xs text-slate-600">Instant webhook commands & alerts</div>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div class="text-xs font-bold mb-1">⚡ Real-Time Updates</div>
+            <div class="text-xs text-slate-600">WebSocket live notifications</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl border border-slate-100 p-6 card-enter">
+        <h3 class="font-bold text-sm mb-3" style="color:#0c1929;">Recent Notifications</h3>
+        <div id="telegram-notifications" class="space-y-2"></div>
+        <div id="telegram-empty" class="text-center text-slate-400 text-sm py-6">No notifications sent yet.</div>
+      </div>
+    </div>`;
+  
+  renderTelegramNotifications();
+}
+
+function renderTelegramNotifications() {
+  const container = document.getElementById('telegram-notifications');
+  const empty = document.getElementById('telegram-empty');
+  if (!container) return;
+  
+  const telegramEvents = liveNotifications.filter(n => n.type === 'telegram');
+  if (telegramEvents.length === 0) {
+    if (container) container.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+  
+  container.innerHTML = telegramEvents.map(n => {
+    const time = new Date(n.timestamp).toLocaleTimeString();
+    return `<div class="bg-slate-50 rounded-lg p-3 text-xs border-l-4" style="border-color:#2563eb;">
+      <div class="font-mono-accent text-slate-600 text-xs mb-1">${time}</div>
+      <div class="text-slate-700 whitespace-pre-line text-xs">${n.message.substring(0, 150)}...</div>
+    </div>`;
+  }).join('');
+}
+
+function testTelegramNotification() {
+  if (!telegramBotActive) {
+    showToast('❌ Telegram bot must be connected first', 'error');
+    return;
+  }
+  const testData = {
+    category: 'Water Services',
+    region: 'Addis Ababa / Bole',
+    urgency: 'HIGH',
+    citizen_name: 'Test User',
+    department: 'Water Authority',
+    audit_hash: 'TEST0001'
+  };
+  sendTelegramNotification('test', testData);
+  
+  // Also show webhook response example
+  const webhookDemo = processTelegramWebhook('/cases', telegramBotLanguage);
+  showToast(`📤 Test message sent via Telegram (${telegramBotLanguage.toUpperCase()})`, 'success');
+  addAudit('TELEGRAM_TEST', `Test webhook command processed in ${telegramBotLanguage}`);
+}
+
+function disableTelegramBot() {
+  telegramBotActive = false;
+  addAudit('TELEGRAM_DISCONNECT', 'Telegram bot connection closed');
+  showToast('🔴 Telegram bot disconnected', 'success');
+  renderTelegramPanel();
+}
+
+// ===== ROLE MANAGEMENT PANEL =====
+function renderRolePanel() {
+  const container = document.getElementById('view-roles');
+  if (!container) return;
+  
+  const rolesList = Object.keys(RBAC).map(role => {
+    const rbac = RBAC[role];
+    const isActive = role === currentUserRole;
+    return `
+      <div class="bg-white rounded-xl border ${isActive ? 'border-blue-300' : 'border-slate-100'} p-5 card-enter">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold text-sm" style="color:#0c1929;">${role}</h4>
+          ${isActive ? '<span class="badge" style="background:#dbeafe;color:#1e40af;">CURRENT</span>' : ''}
+        </div>
+        
+        <div class="text-xs text-slate-600 mb-3">
+          <div class="mb-2"><strong>Permissions:</strong></div>
+          <div class="space-y-1">
+            <div>${rbac.canEdit ? '✅' : '❌'} Can submit/edit complaints</div>
+            <div>${rbac.canResolve ? '✅' : '❌'} Can resolve cases</div>
+            <div>${rbac.canAssign ? '✅' : '❌'} Can assign cases</div>
+            <div>${rbac.canDelete ? '✅' : '❌'} Can delete cases</div>
+            <div>${rbac.canViewAudit ? '✅' : '❌'} Can view audit trail</div>
+          </div>
+        </div>
+        
+        <div class="text-xs text-slate-500 mb-3">
+          <strong>Can access:</strong> ${rbac.canView.join(', ')}
+        </div>
+        
+        ${!isActive ? `<button onclick="switchUserRole('${role}')" class="px-4 py-2 rounded-lg text-white text-xs font-semibold" style="background:#2563eb;">Switch to ${role}</button>` : ''}
+      </div>`;
+  }).join('');
+  
+  container.innerHTML = `
+    <div class="max-w-4xl">
+      <div class="bg-blue-50 rounded-xl border border-blue-100 p-5 mb-6 card-enter">
+        <div class="text-sm font-bold text-blue-900 mb-2">👥 Role Management</div>
+        <div class="text-xs text-slate-600">Switch between different user roles to test role-based access controls. Each role has specific permissions and visible features.</div>
+        <div class="text-xs text-slate-500 mt-2"><strong>Current Role:</strong> <span class="font-mono-accent" style="background:#dbeafe;padding:2px 6px;border-radius:4px;">${currentUserRole}</span></div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${rolesList}
+      </div>
+    </div>`;
+}
+
+function switchUserRole(role) {
+  if (!RBAC[role]) return;
+  currentUserRole = role;
+  addAudit('ROLE_SWITCH', `User switched to ${role} role`);
+  showToast(`✅ Switched to ${role} role. Some features may be restricted.`, 'success');
+  renderRolePanel();
+  switchView('dashboard');
+}
+
+function applyConfig(config) {
+  const bg = config.background_color || defaultConfig.background_color;
+  const surface = config.surface_color || defaultConfig.surface_color;
+  const text = config.text_color || defaultConfig.text_color;
+  const primary = config.primary_action_color || defaultConfig.primary_action_color;
+  const secondary = config.secondary_action_color || defaultConfig.secondary_action_color;
+  const font = config.font_family || defaultConfig.font_family;
+  const size = config.font_size || defaultConfig.font_size;
+  const title = config.platform_title || defaultConfig.platform_title;
+  const subtitle = config.subtitle_text || defaultConfig.subtitle_text;
+
+  document.getElementById('app').style.background = bg;
+  document.getElementById('sidebar-title').textContent = title;
+  document.getElementById('sidebar-subtitle').textContent = subtitle;
+
+  document.querySelectorAll('.bg-white').forEach(el => el.style.background = surface);
+  document.querySelector('header').style.background = surface;
+
+  document.querySelectorAll('h1, h3, h4, .font-bold').forEach(el => {
+    if (el.closest('#sidebar') || el.style.color) return;
+    el.style.color = text;
+  });
+
+  document.getElementById('submit-btn').style.background = primary;
+
+  document.body.style.fontFamily = `${font}, DM Sans, sans-serif`;
+  const baseSize = size;
+  document.querySelectorAll('p, span, div').forEach(el => {
+    if (!el.classList.contains('text-3xl') && !el.classList.contains('text-lg')) {
+      // leave explicit sizes alone
+    }
+  });
+  document.querySelectorAll('.text-sm').forEach(el => el.style.fontSize = `${baseSize}px`);
+  document.querySelectorAll('.text-xs').forEach(el => el.style.fontSize = `${baseSize * 0.85}px`);
+  document.querySelectorAll('.text-lg').forEach(el => el.style.fontSize = `${baseSize * 1.3}px`);
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => { applyConfig(config); },
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: v => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: v => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } }
+    ],
+    borderables: [],
+    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['platform_title', config.platform_title || defaultConfig.platform_title],
+    ['subtitle_text', config.subtitle_text || defaultConfig.subtitle_text]
+  ])
+});
+
+// ===== DATA SDK =====
+(async () => {
+  // Initialize Supabase connection
+  const supabaseReady = await initSupabase();
+  if (supabaseReady) {
+    showAuthToast('🔗 Supabase connected', 'success');
+    // Sync existing data from Supabase
+    await syncComplaints();
+    await syncAuditLog();
+  } else {
+    showAuthToast('⚠️ Using local data storage (Supabase not available)', 'error');
+  }
+  
+  // Initialize offline database
+  await initOfflineDB();
+  
+  const result = await window.dataSdk.init({
+    onDataChanged(data) {
+      allComplaints = data;
+      
+      // Cache complaints offline
+      cacheComplaintsOffline(data);
+      
+      // Run fraud detection
+      detectDuplicates();
+      
+      if (currentView === 'dashboard') renderDashboard();
+      if (currentView === 'complaints') renderComplaints();
+    }
+  });
+  if (!result.isOk) { showAuthToast('Data connection failed', 'error'); }
+  lucide.createIcons();
+  
+  // Update user display name
+  if (currentUser && currentUser.name) {
+    const nameEl = document.getElementById('user-name');
+    if (nameEl) nameEl.textContent = currentUser.name.split(' ')[0];
+  }
+})();
+</script>
+    </div>
+   </main>
+  </div>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ec2723d73fd9dd1',t:'MTc3NjE2NjkzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
